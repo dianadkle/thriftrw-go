@@ -43,6 +43,48 @@ type Protocol interface {
 	// DecodeEnveloped reads an enveloped value from the given Reader.
 	// Enveloped values are assumed to be TStructs.
 	DecodeEnveloped(r io.ReaderAt) (wire.Envelope, error)
+	StreamWriter(w io.Writer) Writer
+}
+
+type Writer interface {
+	WriteBool(bool) error
+	WriteInt8(i int8) error
+	WriteInt16(i int16) error
+	WriteInt32(i int32) error
+	WriteInt64(i int64) error
+	WriteString(s string) error
+	WriteDouble(d float64) error
+	WriteBinary(b []byte) error
+	WriteStructBegin() error
+	WriteStructEnd() error
+	WriteFieldBegin(wire.Type, int16) error
+	WriteFieldEnd() error
+	WriteMapBegin(wire.Type, wire.Type, int) error
+	WriteMapEnd() error
+	WriteSetBegin(wire.Type, int) error
+	WriteSetEnd() error
+	WriteListBegin(wire.Type, int) error
+	WriteListEnd() error
+}
+
+type Reader interface {
+	ReadBool(int64) (bool, int64, error)
+	ReadInt8(int64) (int8, int64, error)
+	ReadInt16(int64) (int16, int64, error)
+	ReadInt32(int64) (int32, int64, error)
+	ReadInt64(int64) (int64, int64, error)
+	ReadString(int64) (string, int64, error)
+	ReadDouble(int64) (float64, int64, error)
+	ReadBinary(int64) ([]byte, int64, error)
+	ReadStructBegin(int64) (int64, error)
+	ReadStructEnd() error
+	ReadFieldBegin(off int64) (wire.Type, int16, int64, error)
+	ReadFieldEnd() error
+}
+
+type StreamingProtocol interface {
+	StreamWriter(io.Writer) Writer
+	StreamReader(io.Reader) Reader
 }
 
 // EnvelopeAgnosticProtocol defines a specific way for a Thrift value to be

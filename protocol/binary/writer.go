@@ -248,3 +248,139 @@ func (bw *Writer) WriteValue(v wire.Value) error {
 		return fmt.Errorf("unknown ttype %v", v.Type())
 	}
 }
+
+func (bw *Writer) WriteBool(b bool) error {
+	if b {
+		return bw.writeByte(1)
+	}
+	return bw.writeByte(0)
+}
+
+func (bw *Writer) WriteInt8(i int8) error {
+	return bw.writeByte(byte(i))
+}
+
+func (bw *Writer) WriteInt16(i int16) error {
+	return bw.writeInt16(i)
+}
+
+func (bw *Writer) WriteInt32(i int32) error {
+	return bw.writeInt32(i)
+}
+
+func (bw *Writer) WriteInt64(i int64) error {
+	return bw.writeInt64(i)
+}
+
+func (bw *Writer) WriteString(s string) error {
+	return bw.writeString(s)
+}
+
+func (bw *Writer) WriteDouble(d float64) error {
+	value := math.Float64bits(d)
+	return bw.writeInt64(int64(value))
+}
+
+func (bw *Writer) WriteBinary(b []byte) error {
+	if err := bw.writeInt32(int32(len(b))); err != nil {
+		return err
+	}
+	return bw.write(b)
+}
+
+func (bw *Writer) WriteFieldBegin(t wire.Type, i int16) error {
+	// type:1
+	if err := bw.writeByte(byte(t)); err != nil {
+		return err
+	}
+
+	// id:2
+	if err := bw.WriteInt16(i); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (bw *Writer) WriteFieldEnd() error {
+	return nil
+}
+
+func (bw *Writer) WriteStructBegin() error {
+	//// type:1
+	//if err := bw.writeByte(byte(t)); err != nil {
+	//	return err
+	//}
+	//
+	//// id:2
+	//if err := bw.WriteInt16(i); err != nil {
+	//	return err
+	//}
+	//
+	return nil
+}
+
+func (bw *Writer) WriteStructEnd() error {
+	//return nil
+	return bw.writeByte(0) // end struct
+}
+
+func (bw *Writer) WriteListBegin(t wire.Type, size int) error {
+	// vtype:1
+	if err := bw.writeByte(byte(t)); err != nil {
+		return err
+	}
+
+	// length:4
+	if err := bw.writeInt32(int32(size)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (bw *Writer) WriteListEnd() error {
+	return nil
+}
+
+func (bw *Writer) WriteSetBegin(t wire.Type, size int) error {
+	// vtype:1
+	if err := bw.writeByte(byte(t)); err != nil {
+		return err
+	}
+
+	// length:4
+	if err := bw.writeInt32(int32(size)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (bw *Writer) WriteSetEnd() error {
+	return nil
+}
+
+func (bw *Writer) WriteMapBegin(key wire.Type, value wire.Type, size int) error {
+
+	// ktype:1
+	if err := bw.writeByte(byte(key)); err != nil {
+		return err
+	}
+
+	// vtype:1
+	if err := bw.writeByte(byte(value)); err != nil {
+		return err
+	}
+
+	// length:4
+	if err := bw.writeInt32(int32(size)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (bw *Writer) WriteMapEnd() error {
+	return nil
+}

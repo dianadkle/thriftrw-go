@@ -135,6 +135,10 @@ func (binaryProtocol) DecodeEnveloped(r io.ReaderAt) (wire.Envelope, error) {
 	return e, err
 }
 
+func (binaryProtocol) StreamWriter(w io.Writer) Writer {
+	return binary.BorrowWriter(w)
+}
+
 // DecodeRequest specializes Decode and replaces DecodeEnveloped for the
 // specific purpose of decoding request structs that may or may not have an
 // envelope.

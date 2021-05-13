@@ -15,6 +15,7 @@ import (
 	wire "go.uber.org/thriftrw/wire"
 	zapcore "go.uber.org/zap/zapcore"
 	strings "strings"
+	"go.uber.org/thriftrw/protocol"
 )
 
 type ContactInfo struct {
@@ -1229,6 +1230,70 @@ func (v *Edge) ToWire() (wire.Value, error) {
 	return wire.NewValueFieldList((*_fieldList_Edge)(v)), nil
 }
 
+func (v *Edge) Encode(pw protocol.Writer) error {
+	pw.WriteStructBegin()
+
+	var err error
+
+	// INT 16
+	if v.StartPoint != nil {
+		if err = pw.WriteFieldBegin(wire.TStruct, 1); err != nil {
+			return err
+		}
+		if err = v.StartPoint.Encode(pw); err != nil {
+			return err
+		}
+		pw.WriteFieldEnd()
+	}
+
+	// INT 32
+	if v.EndPoint != nil {
+		if err = pw.WriteFieldBegin(wire.TStruct, 2); err != nil {
+			return err
+		}
+		if err = v.EndPoint.Encode(pw); err != nil {
+			return err
+		}
+		pw.WriteFieldEnd()
+	}
+
+	pw.WriteStructEnd()
+	return nil
+}
+
+func (v *Edge) Decode(pr protocol.Reader) error {
+	off, _ := pr.ReadStructBegin(0)
+
+	ttype, id, off, err := pr.ReadFieldBegin(off)
+	if err != nil {
+		return nil
+	}
+
+	for ttype != 0 {
+		switch id {
+		case 1:
+			point := &Point{}
+			err := point.Decode(pr)
+			if err != nil {
+				return err
+			}
+			v.StartPoint = point
+		case 2:
+			point := &Point{}
+			err := point.Decode(pr)
+			if err != nil {
+				return err
+			}
+			v.EndPoint = point
+		}
+		pr.ReadFieldEnd()
+		ttype, id, off, err = pr.ReadFieldBegin(off)
+	}
+
+	pr.ReadStructEnd()
+	return nil
+}
+
 type _fieldList_Edge Edge
 
 func (fl *_fieldList_Edge) ForEach(writeField func(wire.Field) error) error {
@@ -2069,6 +2134,60 @@ type Graph struct {
 	//
 	// May be empty.
 	Edges []*Edge `json:"edges,required"`
+}
+
+func (v *Graph) Encode(pw protocol.Writer) error {
+	pw.WriteStructBegin()
+
+	var err error
+
+	// INT 16
+	if len(v.Edges) > 0 {
+		pw.WriteFieldBegin(wire.TList, 1)
+		pw.WriteListBegin(wire.TStruct, len(v.Edges))
+		for _, edge := range v.Edges {
+			err = edge.Encode(pw)
+			if err != nil {
+				return err
+			}
+		}
+		pw.WriteListEnd()
+		pw.WriteFieldEnd()
+	}
+
+	pw.WriteStructEnd()
+	return nil
+}
+
+func (v *Graph) Decode(pr protocol.Reader) error {
+	off, _ := pr.ReadStructBegin(0)
+
+	ttype, id, off, err := pr.ReadFieldBegin(off)
+	if err != nil {
+		return nil
+	}
+
+	for ttype != 0 {
+		switch id {
+		case 1:
+			t, len, o, err := pr.ReadListBegin(off)
+			if err != nil {
+				return err
+			}
+			edges := make([]*Edge, len)
+			for i := range len {
+				e := &Edge{}
+				err = e.Decode(pr)
+
+			}
+			v.StartPoint = point
+		}
+		pr.ReadFieldEnd()
+		ttype, id, off, err = pr.ReadFieldBegin(off)
+	}
+
+	pr.ReadStructEnd()
+	return nil
 }
 
 type _List_Edge_ValueList []*Edge
@@ -3420,6 +3539,65 @@ func (v *Point) ToWire() (wire.Value, error) {
 	return wire.NewValueFieldList((*_fieldList_Point)(v)), nil
 }
 
+func (v *Point) Encode(pw protocol.Writer) error {
+	pw.WriteStructBegin()
+
+	var err error
+
+	// DOUBLE
+		if err = pw.WriteFieldBegin(wire.TDouble, 1); err != nil {
+			return err
+		}
+		if err = pw.WriteDouble(v.X); err != nil {
+			return err
+		}
+		pw.WriteFieldEnd()
+
+	if err = pw.WriteFieldBegin(wire.TDouble, 2); err != nil {
+		return err
+	}
+	if err = pw.WriteDouble(v.Y); err != nil {
+		return err
+	}
+	pw.WriteFieldEnd()
+
+	pw.WriteStructEnd()
+	return nil
+}
+
+func (v *Point) Decode(pr protocol.Reader) error {
+	off, _ := pr.ReadStructBegin(0)
+
+	ttype, id, off, err := pr.ReadFieldBegin(off)
+	if err != nil {
+		return nil
+	}
+
+	for ttype != 0 {
+		switch id {
+		case 1:
+			b, o, err := pr.ReadDouble(off)
+			if err != nil {
+				return err
+			}
+			off = o
+			v.X = ptr.Float64(b)
+		case 2:
+			b, o, err := pr.ReadDouble(off)
+			if err != nil {
+				return err
+			}
+			off = o
+			v.Y = ptr.Float64(b)
+		}
+		pr.ReadFieldEnd()
+		ttype, id, off, err = pr.ReadFieldBegin(off)
+	}
+
+	pr.ReadStructEnd()
+	return nil
+}
+
 type _fieldList_Point Point
 
 func (fl *_fieldList_Point) ForEach(writeField func(wire.Field) error) error {
@@ -3608,6 +3786,189 @@ type PrimitiveOptionalStruct struct {
 func (v *PrimitiveOptionalStruct) ToWire() (wire.Value, error) {
 	return wire.NewValueFieldList((*_fieldList_PrimitiveOptionalStruct)(v)), nil
 }
+
+func (v *PrimitiveOptionalStruct) Encode(pw protocol.Writer) error {
+	pw.WriteStructBegin()
+
+	var err error
+
+	// BOOL
+	if v.BoolField != nil {
+		if err = pw.WriteFieldBegin(wire.TBool, 1); err != nil {
+			return err
+		}
+		if err = pw.WriteBool(*v.BoolField); err != nil {
+			return err
+		}
+		pw.WriteFieldEnd()
+	}
+	// INT 16
+	if v.ByteField != nil {
+		if err = pw.WriteFieldBegin(wire.TI8, 2); err != nil {
+			return err
+		}
+		if err = pw.WriteInt8(*v.ByteField); err != nil {
+			return err
+		}
+		pw.WriteFieldEnd()
+	}
+	// INT 16
+	if v.Int16Field != nil {
+		if err = pw.WriteFieldBegin(wire.TI16, 3); err != nil {
+			return err
+		}
+		if err = pw.WriteInt16(*v.Int16Field); err != nil {
+			return err
+		}
+		pw.WriteFieldEnd()
+	}
+
+
+	// INT 32
+	if v.Int32Field != nil {
+		if err = pw.WriteFieldBegin(wire.TI32, 4); err != nil {
+			return err
+		}
+		if err = pw.WriteInt32(*v.Int32Field); err != nil {
+			return err
+		}
+		pw.WriteFieldEnd()
+	}
+
+	// INT 64
+	if v.Int64Field != nil {
+		if err = pw.WriteFieldBegin(wire.TI64, 5); err != nil {
+			return err
+		}
+		if err = pw.WriteInt64(*v.Int64Field); err != nil {
+			return err
+		}
+		pw.WriteFieldEnd()
+	}
+
+	// DOUBLE
+	if v.DoubleField != nil {
+		if err = pw.WriteFieldBegin(wire.TDouble, 6); err != nil {
+			return err
+		}
+		if err = pw.WriteDouble(*v.DoubleField); err != nil {
+			return err
+		}
+		pw.WriteFieldEnd()
+	}
+	// STRING
+	if v.StringField != nil {
+		if err = pw.WriteFieldBegin(wire.TBinary, 7); err != nil {
+			return err
+		}
+		if err = pw.WriteString(*v.StringField); err != nil {
+			return err
+		}
+		pw.WriteFieldEnd()
+	}
+
+
+	// BINARY
+	if len(v.BinaryField) > 0 {
+		if err = pw.WriteFieldBegin(wire.TBinary, 8); err != nil {
+			return err
+		}
+		if err = pw.WriteBinary(v.BinaryField); err != nil {
+			return err
+		}
+		pw.WriteFieldEnd()
+	}
+
+	pw.WriteStructEnd()
+	return nil
+}
+
+//BoolField   *bool    `json:"boolField,omitempty"`
+//ByteField   *int8    `json:"byteField,omitempty"`
+//Int16Field  *int16   `json:"int16Field,omitempty"`
+//Int32Field  *int32   `json:"int32Field,omitempty"`
+//Int64Field  *int64   `json:"int64Field,omitempty"`
+//DoubleField *float64 `json:"doubleField,omitempty"`
+//StringField *string  `json:"stringField,omitempty"`
+//BinaryField []byte   `json:"binaryField,omitempty"`
+
+func (v *PrimitiveOptionalStruct) Decode(pr protocol.Reader) error {
+	off, _ := pr.ReadStructBegin(0)
+
+	var err error
+
+	ttype, id, off, err := pr.ReadFieldBegin(off)
+	if err != nil {
+		return nil
+	}
+
+	for ttype != 0 {
+		switch id {
+		case 1:
+			b, o, err := pr.ReadBool(off)
+			if err != nil {
+				return err
+			}
+			off = o
+			v.BoolField = ptr.Bool(b)
+		case 2:
+			b, o, err := pr.ReadInt8(off)
+			if err != nil {
+				return err
+			}
+			off = o
+			v.ByteField = ptr.Int8(b)
+		case 3:
+			i, o, err := pr.ReadInt16(off)
+			if err != nil {
+				return err
+			}
+			off = o
+			v.Int16Field = ptr.Int16(i)
+		case 4:
+			i, o, err := pr.ReadInt32(off)
+			if err != nil {
+				return err
+			}
+			off = o
+			v.Int32Field = ptr.Int32(i)
+		case 5:
+			i, o, err := pr.ReadInt64(off)
+			if err != nil {
+				return err
+			}
+			off = o
+			v.Int64Field = ptr.Int64(i)
+		case 6:
+			d, o, err := pr.ReadDouble(off)
+			if err != nil {
+				return err
+			}
+			off = o
+			v.DoubleField = ptr.Float64(d)
+		case 7:
+			s, o, err := pr.ReadString(off)
+			if err != nil {
+				return err
+			}
+			off = o
+			v.StringField = ptr.String(s)
+		case 8:
+			b, o, err := pr.ReadBinary(off)
+			if err != nil {
+				return err
+			}
+			off = o
+			v.BinaryField = b
+		}
+		pr.ReadFieldEnd()
+		ttype, id, off, err = pr.ReadFieldBegin(off)
+	}
+
+	pr.ReadStructEnd()
+	return nil
+}
+
 
 type _fieldList_PrimitiveOptionalStruct PrimitiveOptionalStruct
 

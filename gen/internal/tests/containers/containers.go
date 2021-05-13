@@ -13,6 +13,7 @@ import (
 	enums "go.uber.org/thriftrw/gen/internal/tests/enums"
 	typedefs "go.uber.org/thriftrw/gen/internal/tests/typedefs"
 	uuid_conflict "go.uber.org/thriftrw/gen/internal/tests/uuid_conflict"
+	"go.uber.org/thriftrw/protocol"
 	thriftreflect "go.uber.org/thriftrw/thriftreflect"
 	wire "go.uber.org/thriftrw/wire"
 	zapcore "go.uber.org/zap/zapcore"
@@ -38,6 +39,163 @@ type ContainersOfContainers struct {
 		Key   map[int32]struct{}
 		Value []float64
 	} `json:"mapOfSetToListOfDouble,omitempty"`
+}
+
+func (v *ContainersOfContainers) Encode(pw protocol.Writer) error {
+	pw.WriteStructBegin()
+
+	var err error
+
+	// ListOfLists
+	if v.ListOfLists != nil {
+		if err = pw.WriteFieldBegin(wire.TList, 1); err != nil {
+			return err
+		}
+		if err = pw.WriteListBegin(wire.TList, len(v.ListOfLists)); err != nil {
+			return err
+		}
+		for _, i := range v.ListOfLists {
+			if err = pw.WriteListBegin(wire.TI32, len(i)); err != nil {
+				return err
+			}
+			for _, j := range i {
+				if err = pw.WriteInt32(j); err != nil {
+					return err
+				}
+			}
+			pw.WriteListEnd()
+		}
+		pw.WriteListEnd()
+		pw.WriteFieldEnd()
+	}
+
+	// ListOfSets
+	if v.ListOfSets != nil {
+		if err = pw.WriteFieldBegin(wire.TList, 2); err != nil {
+			return err
+		}
+		if err = pw.WriteListBegin(wire.TSet, len(v.ListOfSets)); err != nil {
+			return err
+		}
+		for _, i := range v.ListOfSets {
+			if err = pw.WriteSetBegin(wire.TI32, len(i)); err != nil {
+				return err
+			}
+			for j, _ := range i {
+				if err = pw.WriteInt32(j); err != nil {
+					return err
+				}
+			}
+			pw.WriteSetEnd()
+		}
+		pw.WriteListEnd()
+		pw.WriteFieldEnd()
+	}
+
+	// ListOfMaps
+	if v.ListOfMaps != nil {
+		if err = pw.WriteFieldBegin(wire.TList, 3); err != nil {
+			return err
+		}
+		if err = pw.WriteListBegin(wire.TMap, len(v.ListOfMaps)); err != nil {
+			return err
+		}
+		for _, i := range v.ListOfMaps {
+			if err = pw.WriteMapBegin(wire.TI32, wire.TI32, len(i)); err != nil {
+				return err
+			}
+			for k, y := range i {
+				if err = pw.WriteInt32(k); err != nil {
+					return err
+				}
+				if err = pw.WriteInt32(y); err != nil {
+					return err
+				}
+			}
+			pw.WriteMapEnd()
+		}
+		pw.WriteListEnd()
+		pw.WriteFieldEnd()
+	}
+
+	// SetOfSets
+	if v.SetOfSets != nil {
+		if err = pw.WriteFieldBegin(wire.TSet, 4); err != nil {
+			return err
+		}
+		if err = pw.WriteSetBegin(wire.TSet, len(v.SetOfSets)); err != nil {
+			return err
+		}
+		for _, i := range v.SetOfSets {
+			if err = pw.WriteSetBegin(wire.TBinary, len(i)); err != nil {
+				return err
+			}
+			for j, _ := range i {
+				if err = pw.WriteString(j); err != nil {
+					return err
+				}
+			}
+			pw.WriteSetEnd()
+		}
+		pw.WriteSetEnd()
+		pw.WriteFieldEnd()
+	}
+
+	// SetOfLists
+	if v.SetOfLists != nil {
+		if err = pw.WriteFieldBegin(wire.TSet, 5); err != nil {
+			return err
+		}
+		if err = pw.WriteSetBegin(wire.TList, len(v.SetOfLists)); err != nil {
+			return err
+		}
+		for _, i := range v.SetOfLists {
+			if err = pw.WriteListBegin(wire.TBinary, len(i)); err != nil {
+				return err
+			}
+			for _, j := range i {
+				if err = pw.WriteString(j); err != nil {
+					return err
+				}
+			}
+			pw.WriteListEnd()
+		}
+		pw.WriteSetEnd()
+		pw.WriteFieldEnd()
+	}
+
+	// SetOfMaps
+	if v.SetOfMaps != nil {
+		if err = pw.WriteFieldBegin(wire.TSet, 6); err != nil {
+			return err
+		}
+		if err = pw.WriteSetBegin(wire.TMap, len(v.SetOfMaps)); err != nil {
+			return err
+		}
+		for _, i := range v.SetOfMaps {
+			if err = pw.WriteMapBegin(wire.TBinary, wire.TBinary, len(i)); err != nil {
+				return err
+			}
+			for k, y := range i {
+				if err = pw.WriteString(k); err != nil {
+					return err
+				}
+				if err = pw.WriteString(y); err != nil {
+					return err
+				}
+			}
+			pw.WriteMapEnd()
+		}
+		pw.WriteSetEnd()
+		pw.WriteFieldEnd()
+	}
+
+	pw.WriteStructEnd()
+	return nil
+}
+
+func (v *ContainersOfContainers) Decode (pr protocol.Reader) error {
+	return nil
 }
 
 type _List_I32_ValueList []int32

@@ -2,20 +2,266 @@ package gen_test
 
 import (
 	"bytes"
+	tc "go.uber.org/thriftrw/gen/internal/tests/containers"
+	"go.uber.org/thriftrw/protocol/binary"
+	"go.uber.org/thriftrw/ptr"
 	"math"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	tc "go.uber.org/thriftrw/gen/internal/tests/containers"
 	ts "go.uber.org/thriftrw/gen/internal/tests/structs"
 	"go.uber.org/thriftrw/protocol"
-	"go.uber.org/thriftrw/ptr"
 	"go.uber.org/thriftrw/wire"
 )
 
 type thriftType interface {
 	ToWire() (wire.Value, error)
 	FromWire(wire.Value) error
+	Encode(pw protocol.Writer) error
+	Decode(pr protocol.Reader) error
+}
+
+func TestEncodingCorrectness(t *testing.T) {
+	type testCase struct {
+		name string
+		give thriftType
+		res thriftType
+	}
+
+	testcases := []testCase{
+		{
+			name: "PrimitiveOptionalStruct",
+			give: &ts.PrimitiveOptionalStruct{
+				BoolField:   ptr.Bool(true),
+				ByteField:   ptr.Int8(42),
+				Int16Field:  ptr.Int16(123),
+				Int32Field:  ptr.Int32(1234),
+				Int64Field:  ptr.Int64(123456),
+				DoubleField: ptr.Float64(math.Pi),
+				StringField: ptr.String("foo"),
+				BinaryField: []byte("bar"),
+			},
+			res: &ts.PrimitiveOptionalStruct{},
+		},
+		{
+			name: "Graph",
+			give: &ts.Graph{
+				Edges: []*ts.Edge{
+					{
+						StartPoint: &ts.Point{X: 1.0, Y: 2.0},
+						EndPoint:   &ts.Point{X: 3.0, Y: 4.0},
+					},
+					{
+						StartPoint: &ts.Point{X: 5.0, Y: 6.0},
+						EndPoint:   &ts.Point{X: 7.0, Y: 8.0},
+					},
+					{
+						StartPoint: &ts.Point{X: 9.0, Y: 10.0},
+						EndPoint:   &ts.Point{X: 11.0, Y: 12.0},
+					},
+				},
+			},
+			res: &ts.Graph{},
+		},
+		{
+			name: "ContainersOfContainers",
+			give: &tc.ContainersOfContainers{
+				ListOfLists: [][]int32{
+					int32range(1, 10),
+					int32range(2, 20),
+					int32range(3, 30),
+					int32range(4, 40),
+					int32range(5, 50),
+				},
+				ListOfSets: []map[int32]struct{}{
+					int32set(int32range(6, 60)...),
+					int32set(int32range(7, 70)...),
+					int32set(int32range(8, 80)...),
+					int32set(int32range(9, 90)...),
+					int32set(int32range(10, 100)...),
+				},
+				ListOfMaps: []map[int32]int32{
+					int32multiply(42, int32range(5, 10)...),
+					int32multiply(43, int32range(6, 20)...),
+					int32multiply(44, int32range(7, 30)...),
+				},
+				SetOfSets: []map[string]struct{}{
+					stringset("foo", "bar", "baz", "qux", "quux"),
+					stringset("bar", "baz", "qux", "quux"),
+					stringset("baz", "qux", "quux"),
+					stringset("qux", "quux"),
+					stringset("quux"),
+					stringset(),
+				},
+				SetOfLists: [][]string{
+					{"foo", "bar", "baz", "qux", "quux"},
+					{"bar", "baz", "qux", "quux"},
+					{"baz", "qux", "quux"},
+					{"qux", "quux"},
+					{"quux"},
+					{},
+				},
+				SetOfMaps: []map[string]string{
+					{"foo": "bar"},
+					{"bar": "baz"},
+					{"baz": "qux"},
+					{"qux": "quux"},
+					{"quux": "foo"},
+				},
+			},
+			res: &tc.ContainersOfContainers{},
+		},
+	}
+
+	wireDecode := func(tt *testing.T, bb testCase, buff bytes.Buffer) {
+
+		r := bytes.NewReader(buff.Bytes())
+		r.Seek(0, 0)
+
+		wval, err := protocol.Binary.Decode(r, wire.TStruct)
+		require.NoError(tt, err, "Decode")
+
+
+		require.NoError(tt, bb.res.FromWire(wval), "FromWire")
+		require.Equal(tt, bb.give, bb.res)
+	}
+
+	directEncode := func( bb testCase) bytes.Buffer {
+		var buff bytes.Buffer
+
+
+		writer := binary.BorrowWriter(&buff)
+		bb.give.Encode(writer)
+		binary.ReturnWriter(writer)
+		return buff
+	}
+
+	for _, bb := range testcases {
+		t.Run(bb.name, func(tt *testing.T) {
+			directBytes := directEncode(bb)
+			wireDecode(tt, bb, directBytes)
+		})
+	}
+}
+
+func TestDecodingCorrectness(t *testing.T) {
+	type testCase struct {
+		name string
+		give thriftType
+		res thriftType
+	}
+
+	testcases := []testCase{
+		{
+			name: "PrimitiveOptionalStruct",
+			give: &ts.PrimitiveOptionalStruct{
+				BoolField:   ptr.Bool(true),
+				ByteField:   ptr.Int8(42),
+				Int16Field:  ptr.Int16(123),
+				Int32Field:  ptr.Int32(1234),
+				Int64Field:  ptr.Int64(123456),
+				DoubleField: ptr.Float64(math.Pi),
+				StringField: ptr.String("foo"),
+				BinaryField: []byte("bar"),
+			},
+			res: &ts.PrimitiveOptionalStruct{},
+		},
+		//{
+		//	name: "Graph",
+		//	give: &ts.Graph{
+		//		Edges: []*ts.Edge{
+		//			{
+		//				StartPoint: &ts.Point{X: 1.0, Y: 2.0},
+		//				EndPoint:   &ts.Point{X: 3.0, Y: 4.0},
+		//			},
+		//			{
+		//				StartPoint: &ts.Point{X: 5.0, Y: 6.0},
+		//				EndPoint:   &ts.Point{X: 7.0, Y: 8.0},
+		//			},
+		//			{
+		//				StartPoint: &ts.Point{X: 9.0, Y: 10.0},
+		//				EndPoint:   &ts.Point{X: 11.0, Y: 12.0},
+		//			},
+		//		},
+		//	},
+		//	res: &ts.Graph{},
+		//},
+		//{
+		//	name: "ContainersOfContainers",
+		//	give: &tc.ContainersOfContainers{
+		//		ListOfLists: [][]int32{
+		//			int32range(1, 10),
+		//			int32range(2, 20),
+		//			int32range(3, 30),
+		//			int32range(4, 40),
+		//			int32range(5, 50),
+		//		},
+		//		ListOfSets: []map[int32]struct{}{
+		//			int32set(int32range(6, 60)...),
+		//			int32set(int32range(7, 70)...),
+		//			int32set(int32range(8, 80)...),
+		//			int32set(int32range(9, 90)...),
+		//			int32set(int32range(10, 100)...),
+		//		},
+		//		ListOfMaps: []map[int32]int32{
+		//			int32multiply(42, int32range(5, 10)...),
+		//			int32multiply(43, int32range(6, 20)...),
+		//			int32multiply(44, int32range(7, 30)...),
+		//		},
+		//		SetOfSets: []map[string]struct{}{
+		//			stringset("foo", "bar", "baz", "qux", "quux"),
+		//			stringset("bar", "baz", "qux", "quux"),
+		//			stringset("baz", "qux", "quux"),
+		//			stringset("qux", "quux"),
+		//			stringset("quux"),
+		//			stringset(),
+		//		},
+		//		SetOfLists: [][]string{
+		//			{"foo", "bar", "baz", "qux", "quux"},
+		//			{"bar", "baz", "qux", "quux"},
+		//			{"baz", "qux", "quux"},
+		//			{"qux", "quux"},
+		//			{"quux"},
+		//			{},
+		//		},
+		//		SetOfMaps: []map[string]string{
+		//			{"foo": "bar"},
+		//			{"bar": "baz"},
+		//			{"baz": "qux"},
+		//			{"qux": "quux"},
+		//			{"quux": "foo"},
+		//		},
+		//	},
+		//	res: &tc.ContainersOfContainers{},
+		//},
+	}
+
+	directDecode := func(tt *testing.T, bb testCase, buff bytes.Buffer) {
+
+		r := bytes.NewReader(buff.Bytes())
+		r.Seek(0, 0)
+
+		reader := binary.NewReader(r)
+		err := bb.res.Decode(&reader)
+		require.NoError(tt, err, "Decode")
+		require.Equal(tt, bb.give, bb.res)
+	}
+
+	wireEncode := func( bb testCase) bytes.Buffer {
+		var buff bytes.Buffer
+
+
+		w, _ := bb.give.ToWire()
+		protocol.Binary.Encode(w, &buff)
+		return buff
+	}
+
+	for _, bb := range testcases {
+		t.Run(bb.name, func(tt *testing.T) {
+			directBytes := wireEncode(bb)
+			directDecode(tt, bb, directBytes)
+		})
+	}
 }
 
 func BenchmarkRoundTrip(b *testing.B) {
@@ -151,6 +397,142 @@ func BenchmarkRoundTrip(b *testing.B) {
 	}
 }
 
+func BenchmarkRoundTripNoWire(b *testing.B) {
+	type benchCase struct {
+		name string
+		give thriftType
+		res thriftType
+	}
+
+	benchmarks := []benchCase{
+		{
+			name: "PrimitiveOptionalStruct - No Wire",
+			give: &ts.PrimitiveOptionalStruct{
+				BoolField:   ptr.Bool(true),
+				ByteField:   ptr.Int8(42),
+				Int16Field:  ptr.Int16(123),
+				Int32Field:  ptr.Int32(1234),
+				Int64Field:  ptr.Int64(123456),
+				DoubleField: ptr.Float64(math.Pi),
+				StringField: ptr.String("foo"),
+				BinaryField: []byte("bar"),
+			},
+			res: &ts.PrimitiveOptionalStruct{},
+		},
+		//{
+		//	name: "Graph - No Wire",
+		//	give: &ts.Graph{
+		//		Edges: []*ts.Edge{
+		//			{
+		//				StartPoint: &ts.Point{X: 1.0, Y: 2.0},
+		//				EndPoint:   &ts.Point{X: 3.0, Y: 4.0},
+		//			},
+		//			{
+		//				StartPoint: &ts.Point{X: 5.0, Y: 6.0},
+		//				EndPoint:   &ts.Point{X: 7.0, Y: 8.0},
+		//			},
+		//			{
+		//				StartPoint: &ts.Point{X: 9.0, Y: 10.0},
+		//				EndPoint:   &ts.Point{X: 11.0, Y: 12.0},
+		//			},
+		//		},
+		//	},
+		//	res: &ts.Graph{},
+		//},
+		//{
+		//	name: "ContainersOfContainers",
+		//	give: &tc.ContainersOfContainers{
+		//		ListOfLists: [][]int32{
+		//			int32range(1, 10),
+		//			int32range(2, 20),
+		//			int32range(3, 30),
+		//			int32range(4, 40),
+		//			int32range(5, 50),
+		//		},
+		//		ListOfSets: []map[int32]struct{}{
+		//			int32set(int32range(6, 60)...),
+		//			int32set(int32range(7, 70)...),
+		//			int32set(int32range(8, 80)...),
+		//			int32set(int32range(9, 90)...),
+		//			int32set(int32range(10, 100)...),
+		//		},
+		//		ListOfMaps: []map[int32]int32{
+		//			int32multiply(42, int32range(5, 10)...),
+		//			int32multiply(43, int32range(6, 20)...),
+		//			int32multiply(44, int32range(7, 30)...),
+		//		},
+		//		SetOfSets: []map[string]struct{}{
+		//			stringset("foo", "bar", "baz", "qux", "quux"),
+		//			stringset("bar", "baz", "qux", "quux"),
+		//			stringset("baz", "qux", "quux"),
+		//			stringset("qux", "quux"),
+		//			stringset("quux"),
+		//			stringset(),
+		//		},
+		//		SetOfLists: [][]string{
+		//			{"foo", "bar", "baz", "qux", "quux"},
+		//			{"bar", "baz", "qux", "quux"},
+		//			{"baz", "qux", "quux"},
+		//			{"qux", "quux"},
+		//			{"quux"},
+		//			{},
+		//		},
+		//		SetOfMaps: []map[string]string{
+		//			{"foo": "bar"},
+		//			{"bar": "baz"},
+		//			{"baz": "qux"},
+		//			{"qux": "quux"},
+		//			{"quux": "foo"},
+		//		},
+		//	},
+		//	res: &tc.ContainersOfContainers{},
+		//},
+	}
+
+	benchmarkEncode := func(b *testing.B, bb benchCase) {
+		var buff bytes.Buffer
+
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			buff.Reset()
+
+			writer := binary.BorrowWriter(&buff)
+			require.NoError(b, bb.give.Encode(writer), "Encode")
+			binary.ReturnWriter(writer)
+		}
+	}
+
+	benchmarkDecode := func(b *testing.B, bb benchCase) {
+		var buff bytes.Buffer
+		writer := binary.BorrowWriter(&buff)
+		require.NoError(b, bb.give.Encode(writer), "Encode")
+		binary.ReturnWriter(writer)
+
+		r := bytes.NewReader(buff.Bytes())
+
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			r.Seek(0, 0)
+
+			reader := binary.NewReader(r)
+			err := bb.res.Decode(&reader)
+			require.NoError(b, err, "Decode")
+			require.Equal(b, bb.give, bb.res)
+		}
+	}
+
+	for _, bb := range benchmarks {
+		b.Run(bb.name, func(b *testing.B) {
+			b.Run("Encode", func(b *testing.B) {
+				benchmarkEncode(b, bb)
+			})
+
+			b.Run("Decode", func(b *testing.B) {
+				benchmarkDecode(b, bb)
+			})
+		})
+	}
+}
 // Generates a slice representing the range [from, to).
 func int32range(from, to int32) []int32 {
 	if from > to {

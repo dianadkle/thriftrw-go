@@ -22,6 +22,7 @@ package binary
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"math"
 
@@ -457,4 +458,94 @@ func (br *Reader) ReadValue(t wire.Type, off int64) (wire.Value, int64, error) {
 	default:
 		return wire.Value{}, off, decodeErrorf("unknown ttype %v", t)
 	}
+}
+
+func (br *Reader) ReadBool(off int64) (bool, int64, error) {
+	b, off, err := br.readByte(off)
+	if err != nil {
+		return false, off, err
+	}
+
+	if b != 0 && b != 1 {
+		return false, off, fmt.Errorf("error in bool")
+	}
+
+	return b == 1, off, nil
+}
+
+func (br *Reader) ReadInt8(off int64) (int8, int64, error) {
+	b, off, err := br.readByte(off)
+	return int8(b), off, err
+}
+
+func (br *Reader) ReadInt16(off int64) (int16, int64, error) {
+	return br.readInt16(off)
+}
+
+func (br *Reader) ReadInt32(off int64) (int32, int64, error) {
+	return br.readInt32(off)
+}
+
+func (br *Reader) ReadInt64(off int64) (int64, int64, error) {
+	return br.readInt64(off)
+}
+
+func (br *Reader) ReadString(off int64) (string, int64, error) {
+	return br.readString(off)
+}
+
+func (br *Reader) ReadDouble(off int64) (float64, int64, error) {
+	value, off, err := br.readInt64(off)
+	return math.Float64frombits(uint64(value)), off, err
+}
+
+func (br *Reader) ReadBinary(off int64) ([]byte, int64, error) {
+	return br.readBytes(off)
+}
+
+func (br *Reader) ReadStructBegin(off int64) (int64, error) {
+	return off, nil
+}
+
+func (br *Reader) ReadStructEnd() error {
+	return nil
+}
+
+func (br *Reader) ReadFieldBegin(off int64) (wire.Type, int16, int64, error) {
+	ttype, off, err := br.readByte(off)
+	if err != nil {
+		return wire.Type(0), 0, off, err
+	}
+
+	id, off, err := br.readInt16(off)
+	if err != nil {
+		return wire.Type(0), 0, off, err
+	}
+
+	return wire.Type(ttype), id, off, nil
+}
+
+func (br *Reader) ReadFieldEnd() error {
+	return nil
+}
+
+func (br *Reader) ReadListBegin(off int64) (wire.Type, int32, int64, error) {
+	// vtype:1
+	ttype, off, err := br.readByte(off)
+	if err != nil {
+		return wire.Type(0), 0, off, err
+	}
+
+	// length:4
+	length, off, err := br.readInt32(off)
+	if err != nil {
+		return wire.Type(0), 0, off, err
+	}
+
+	return wire.Type(ttype), length, off, err
+}
+
+
+func (br *Reader) ReadListEnd() error {
+	return nil
 }
