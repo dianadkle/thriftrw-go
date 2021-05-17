@@ -38,6 +38,8 @@ const bytesAllocThreshold = 1048576 // 1 MB
 type Reader struct {
 	reader io.ReaderAt
 
+	buffReader io.Reader
+
 	// This buffer is re-used every time we need a slice of up to 8 bytes.
 	buffer [8]byte
 }
@@ -45,6 +47,11 @@ type Reader struct {
 // NewReader builds a new Reader based on the given io.ReaderAt.
 func NewReader(r io.ReaderAt) Reader {
 	return Reader{reader: r}
+}
+
+// NewReader builds a new Reader based on the given io.ReaderAt.
+func NewBuffReader(r io.Reader) Reader {
+	return Reader{buffReader: r}
 }
 
 // For the reader, we keep track of the read offset manually everywhere so
@@ -218,6 +225,16 @@ func (br *Reader) copyN(w io.Writer, off int64, n int64) (int64, error) {
 		err = io.ErrUnexpectedEOF
 	}
 	return off, err
+}
+
+// copyN copies n bytes starting at offset off into the given Writer.
+func (br *Reader) copyBuffN(w io.Writer, n int64) (error) {
+	_, err := io.CopyN(w, br.buffReader, n)
+	if err == io.EOF {
+		// All EOFs are unexpected for the decoder
+		err = io.ErrUnexpectedEOF
+	}
+	return err
 }
 
 func (br *Reader) readByte(off int64) (byte, int64, error) {
@@ -460,92 +477,217 @@ func (br *Reader) ReadValue(t wire.Type, off int64) (wire.Value, int64, error) {
 	}
 }
 
-func (br *Reader) ReadBool(off int64) (bool, int64, error) {
-	b, off, err := br.readByte(off)
+func (br *Reader) readBuffByte() (byte, error) {
+	bs := br.buffer[0:1]
+	n, err := br.buffReader.Read(bs)
+	if n != 1 {
+		return bs[0], err
+	}
+
+	return bs[0], nil
+}
+
+func (br *Reader) readBuffI16() (int16, error) {
+	bs := br.buffer[0:2]
+	n, err := br.buffReader.Read(bs)
+	if n != 2 {
+		return 0, err
+	}
+	return int16(bigEndian.Uint16(bs)), err
+}
+
+func (br *Reader) readBuffI32() (int32, error) {
+	bs := br.buffer[0:4]
+	n, err := br.buffReader.Read(bs)
+	if n != 4 {
+		return 0, err
+	}
+	return int32(bigEndian.Uint32(bs)), err
+}
+
+func (br *Reader) readBuffI64() (int64, error) {
+	bs := br.buffer[0:8]
+	n, err := br.buffReader.Read(bs)
+	if n != 8 {
+		return 0, err
+	}
+	return int64(bigEndian.Uint64(bs)), err
+}
+
+
+func (br *Reader) readBuffBytes() ([]byte, error) {
+	length, err := br.readBuffI32()
+	if length < 0 {
+		return nil, decodeErrorf(
+			"negative length %d requested for binary value", length,
+		)
+	}
+	if length == 0 {
+		return nil, nil
+	}
 	if err != nil {
-		return false, off, err
+		return nil, err
 	}
 
+	// Use a dynamically resizing buffer for requests larger than
+	// bytesAllocThreshold. We don't want bad requests to lock the system up.
+	if length > bytesAllocThreshold {
+		var buff bytes.Buffer
+		err = br.copyBuffN(&buff, int64(length))
+		if err != nil {
+			return nil, err
+		}
+		return buff.Bytes(), err
+	}
+
+	bs := make([]byte, length)
+	n, err := br.buffReader.Read(bs)
+	if int32(n) != length {
+		return nil, err
+	}
+	return bs, nil
+}
+
+func (br *Reader) ReadBool() (bool, error) {
+	b, err := br.readBuffByte()
+	if err != nil {
+		return false, err
+	}
 	if b != 0 && b != 1 {
-		return false, off, fmt.Errorf("error in bool")
+		return false, fmt.Errorf("error in bool")
 	}
 
-	return b == 1, off, nil
+	return b == 1, nil
 }
 
-func (br *Reader) ReadInt8(off int64) (int8, int64, error) {
-	b, off, err := br.readByte(off)
-	return int8(b), off, err
+func (br *Reader) ReadInt8() (int8, error) {
+	b, err := br.readBuffByte()
+	return int8(b), err
 }
 
-func (br *Reader) ReadInt16(off int64) (int16, int64, error) {
-	return br.readInt16(off)
+func (br *Reader) ReadInt16() (int16, error) {
+	return br.readBuffI16()
 }
 
-func (br *Reader) ReadInt32(off int64) (int32, int64, error) {
-	return br.readInt32(off)
+func (br *Reader) ReadInt32() (int32, error) {
+	return br.readBuffI32()
 }
 
-func (br *Reader) ReadInt64(off int64) (int64, int64, error) {
-	return br.readInt64(off)
+func (br *Reader) ReadInt64() (int64, error) {
+	return br.readBuffI64()
 }
 
-func (br *Reader) ReadString(off int64) (string, int64, error) {
-	return br.readString(off)
+func (br *Reader) ReadString() (string, error) {
+	//return br.readString(off)
+	b, err := br.readBuffBytes()
+	if err != nil {
+		return "", err
+	}
+
+	return string(b), nil
 }
 
-func (br *Reader) ReadDouble(off int64) (float64, int64, error) {
-	value, off, err := br.readInt64(off)
-	return math.Float64frombits(uint64(value)), off, err
+func (br *Reader) ReadDouble() (float64, error) {
+	val, err := br.readBuffI64()
+	if err != nil {
+		return 0, err
+	}
+	return math.Float64frombits(uint64(val)), err
 }
 
-func (br *Reader) ReadBinary(off int64) ([]byte, int64, error) {
-	return br.readBytes(off)
+func (br *Reader) ReadBinary() ([]byte, error) {
+	return br.readBuffBytes()
 }
 
-func (br *Reader) ReadStructBegin(off int64) (int64, error) {
-	return off, nil
-}
-
-func (br *Reader) ReadStructEnd() error {
+func (br *Reader) ReadStructBegin() (error) {
 	return nil
 }
 
-func (br *Reader) ReadFieldBegin(off int64) (wire.Type, int16, int64, error) {
-	ttype, off, err := br.readByte(off)
+func (br *Reader) ReadStructEnd() error {
+	//_, err := br.readBuffByte()
+	//return err
+	return nil
+}
+
+func (br *Reader) ReadFieldBegin() (wire.Type, int16, error) {
+
+	ttype, err := br.readBuffByte()
 	if err != nil {
-		return wire.Type(0), 0, off, err
+		return wire.Type(0), 0, err
 	}
 
-	id, off, err := br.readInt16(off)
-	if err != nil {
-		return wire.Type(0), 0, off, err
+	if ttype == 0 {
+		return wire.Type(0), 0, nil
 	}
 
-	return wire.Type(ttype), id, off, nil
+	id, err := br.readBuffI16()
+	if err != nil {
+		return wire.Type(0), 0, err
+	}
+
+	return wire.Type(ttype), id, nil
 }
 
 func (br *Reader) ReadFieldEnd() error {
 	return nil
 }
 
-func (br *Reader) ReadListBegin(off int64) (wire.Type, int32, int64, error) {
-	// vtype:1
-	ttype, off, err := br.readByte(off)
+func (br *Reader) ReadListBegin() (wire.Type, int32, error) {
+	ttype, err := br.readBuffByte()
 	if err != nil {
-		return wire.Type(0), 0, off, err
+		return wire.Type(0), 0, err
 	}
 
-	// length:4
-	length, off, err := br.readInt32(off)
+	length, err := br.readBuffI32()
 	if err != nil {
-		return wire.Type(0), 0, off, err
+		return wire.Type(0), 0, err
 	}
 
-	return wire.Type(ttype), length, off, err
+	return wire.Type(ttype), length, nil
 }
 
 
 func (br *Reader) ReadListEnd() error {
+	return nil
+}
+
+func (br *Reader) ReadSetBegin() (wire.Type, int32, error) {
+	ttype, err := br.readBuffByte()
+	if err != nil {
+		return wire.Type(0), 0, err
+	}
+
+	length, err := br.readBuffI32()
+	if err != nil {
+		return wire.Type(0), 0, err
+	}
+
+	return wire.Type(ttype), length, nil
+}
+
+func (br *Reader) ReadSetEnd() error {
+	return nil
+}
+
+func (br *Reader) ReadMapBegin() (wire.Type, wire.Type, int32, error) {
+	ktype, err := br.readBuffByte()
+	if err != nil {
+		return wire.Type(0), wire.Type(0), 0, err
+	}
+
+	vtype, err := br.readBuffByte()
+	if err != nil {
+		return wire.Type(0), wire.Type(0), 0, err
+	}
+
+	length, err := br.readBuffI32()
+	if err != nil {
+		return wire.Type(0), wire.Type(0), 0, err
+	}
+
+	return wire.Type(ktype), wire.Type(vtype), length, nil
+}
+
+func (br *Reader) ReadMapEnd() error {
 	return nil
 }

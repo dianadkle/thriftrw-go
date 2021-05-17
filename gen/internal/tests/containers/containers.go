@@ -194,7 +194,193 @@ func (v *ContainersOfContainers) Encode(pw protocol.Writer) error {
 	return nil
 }
 
+//ListOfLists   [][]int32             `json:"listOfLists,omitempty"`
+//ListOfSets    []map[int32]struct{}  `json:"listOfSets,omitempty"`
+//ListOfMaps    []map[int32]int32     `json:"listOfMaps,omitempty"`
+//SetOfSets     []map[string]struct{} `json:"setOfSets,omitempty"`
+//SetOfLists    [][]string            `json:"setOfLists,omitempty"`
+//SetOfMaps     []map[string]string   `json:"setOfMaps,omitempty"`
 func (v *ContainersOfContainers) Decode (pr protocol.Reader) error {
+	err := pr.ReadStructBegin()
+
+	ttype, id, err := pr.ReadFieldBegin()
+	if err != nil {
+		return nil
+	}
+
+
+	for ttype != 0 {
+		switch id {
+		case 1:
+			_,l, err := pr.ReadListBegin()
+			if err != nil {
+				return err
+			}
+			i := int32(0)
+			listOfLists := make([][]int32, l)
+			for i < l {
+				_, l2, err := pr.ReadListBegin()
+				if err != nil {
+					return err
+				}
+				j := int32(0)
+				innerList := make([]int32, l2)
+				for j < l2 {
+					a, err := pr.ReadInt32()
+					if err != nil {
+						return err
+					}
+					innerList[j] = a
+					j++
+				}
+				listOfLists[i] = innerList
+				i++
+			}
+			v.ListOfLists = listOfLists
+		case 2:
+			_,l, err := pr.ReadListBegin()
+			if err != nil {
+				return err
+			}
+			i := int32(0)
+			listOfSets := make([]map[int32]struct{}, l)
+			for i < l {
+				_, l2, err := pr.ReadSetBegin()
+				if err != nil {
+					return err
+				}
+				j := int32(0)
+				innerList := make(map[int32]struct{}, l2)
+				for j < l2 {
+					a, err := pr.ReadInt32()
+					if err != nil {
+						return err
+					}
+					innerList[a] = struct{}{}
+					j++
+				}
+				listOfSets[i] = innerList
+				i++
+			}
+			v.ListOfSets = listOfSets
+		case 3:
+			_,l, err := pr.ReadListBegin()
+			if err != nil {
+				return err
+			}
+			i := int32(0)
+			listOfMaps := make([]map[int32]int32, l)
+			for i < l {
+				_, _, l2, err := pr.ReadMapBegin()
+				if err != nil {
+					return err
+				}
+				j := int32(0)
+				innerList := make(map[int32]int32, l2)
+				for j < l2 {
+					k, err := pr.ReadInt32()
+					if err != nil {
+						return err
+					}
+					v, err := pr.ReadInt32()
+					if err != nil {
+						return err
+					}
+					innerList[k] = v
+					j++
+				}
+				listOfMaps[i] = innerList
+				i++
+			}
+			v.ListOfMaps = listOfMaps
+		case 4:
+			_,l, err := pr.ReadSetBegin()
+			if err != nil {
+				return err
+			}
+			i := int32(0)
+			setOfSets := make([]map[string]struct{}, l)
+			for i < l {
+				_, l2, err := pr.ReadSetBegin()
+				if err != nil {
+					return err
+				}
+				j := int32(0)
+				innerList := make(map[string]struct{}, l2)
+				for j < l2 {
+					a, err := pr.ReadString()
+					if err != nil {
+						return err
+					}
+					innerList[a] = struct{}{}
+					j++
+				}
+				setOfSets[i] = innerList
+				i++
+			}
+			v.SetOfSets = setOfSets
+		case 5:
+			_,l, err := pr.ReadSetBegin()
+			if err != nil {
+				return err
+			}
+			i := int32(0)
+			setOfLists := make([][]string, l)
+			for i < l {
+				_, l2, err := pr.ReadListBegin()
+				if err != nil {
+					return err
+				}
+				j := int32(0)
+				innerList := make([]string, l2)
+				for j < l2 {
+					a, err := pr.ReadString()
+					if err != nil {
+						return err
+					}
+					innerList[j] = a
+					j++
+				}
+				setOfLists[i] = innerList
+				i++
+			}
+			v.SetOfLists = setOfLists
+		case 6:
+			_,l, err := pr.ReadSetBegin()
+			if err != nil {
+				return err
+			}
+			i := int32(0)
+			setOfMaps := make([]map[string]string, l)
+			for i < l {
+				_, _, l2, err := pr.ReadMapBegin()
+				if err != nil {
+					return err
+				}
+				j := int32(0)
+				innerList := make(map[string]string, l2)
+				for j < l2 {
+					k, err := pr.ReadString()
+					if err != nil {
+						return err
+					}
+					v, err := pr.ReadString()
+					if err != nil {
+						return err
+					}
+					innerList[k] = v
+					j++
+				}
+				setOfMaps[i] = innerList
+				i++
+			}
+			v.SetOfMaps = setOfMaps
+		}
+		pr.ReadFieldEnd()
+		ttype, id, err = pr.ReadFieldBegin()
+	}
+
+	pr.ReadStructEnd()
 	return nil
 }
 

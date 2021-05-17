@@ -166,74 +166,74 @@ func TestDecodingCorrectness(t *testing.T) {
 			},
 			res: &ts.PrimitiveOptionalStruct{},
 		},
-		//{
-		//	name: "Graph",
-		//	give: &ts.Graph{
-		//		Edges: []*ts.Edge{
-		//			{
-		//				StartPoint: &ts.Point{X: 1.0, Y: 2.0},
-		//				EndPoint:   &ts.Point{X: 3.0, Y: 4.0},
-		//			},
-		//			{
-		//				StartPoint: &ts.Point{X: 5.0, Y: 6.0},
-		//				EndPoint:   &ts.Point{X: 7.0, Y: 8.0},
-		//			},
-		//			{
-		//				StartPoint: &ts.Point{X: 9.0, Y: 10.0},
-		//				EndPoint:   &ts.Point{X: 11.0, Y: 12.0},
-		//			},
-		//		},
-		//	},
-		//	res: &ts.Graph{},
-		//},
-		//{
-		//	name: "ContainersOfContainers",
-		//	give: &tc.ContainersOfContainers{
-		//		ListOfLists: [][]int32{
-		//			int32range(1, 10),
-		//			int32range(2, 20),
-		//			int32range(3, 30),
-		//			int32range(4, 40),
-		//			int32range(5, 50),
-		//		},
-		//		ListOfSets: []map[int32]struct{}{
-		//			int32set(int32range(6, 60)...),
-		//			int32set(int32range(7, 70)...),
-		//			int32set(int32range(8, 80)...),
-		//			int32set(int32range(9, 90)...),
-		//			int32set(int32range(10, 100)...),
-		//		},
-		//		ListOfMaps: []map[int32]int32{
-		//			int32multiply(42, int32range(5, 10)...),
-		//			int32multiply(43, int32range(6, 20)...),
-		//			int32multiply(44, int32range(7, 30)...),
-		//		},
-		//		SetOfSets: []map[string]struct{}{
-		//			stringset("foo", "bar", "baz", "qux", "quux"),
-		//			stringset("bar", "baz", "qux", "quux"),
-		//			stringset("baz", "qux", "quux"),
-		//			stringset("qux", "quux"),
-		//			stringset("quux"),
-		//			stringset(),
-		//		},
-		//		SetOfLists: [][]string{
-		//			{"foo", "bar", "baz", "qux", "quux"},
-		//			{"bar", "baz", "qux", "quux"},
-		//			{"baz", "qux", "quux"},
-		//			{"qux", "quux"},
-		//			{"quux"},
-		//			{},
-		//		},
-		//		SetOfMaps: []map[string]string{
-		//			{"foo": "bar"},
-		//			{"bar": "baz"},
-		//			{"baz": "qux"},
-		//			{"qux": "quux"},
-		//			{"quux": "foo"},
-		//		},
-		//	},
-		//	res: &tc.ContainersOfContainers{},
-		//},
+		{
+			name: "Graph",
+			give: &ts.Graph{
+				Edges: []*ts.Edge{
+					{
+						StartPoint: &ts.Point{X: 1.0, Y: 2.0},
+						EndPoint:   &ts.Point{X: 3.0, Y: 4.0},
+					},
+					{
+						StartPoint: &ts.Point{X: 5.0, Y: 6.0},
+						EndPoint:   &ts.Point{X: 7.0, Y: 8.0},
+					},
+					{
+						StartPoint: &ts.Point{X: 9.0, Y: 10.0},
+						EndPoint:   &ts.Point{X: 11.0, Y: 12.0},
+					},
+				},
+			},
+			res: &ts.Graph{},
+		},
+		{
+			name: "ContainersOfContainers",
+			give: &tc.ContainersOfContainers{
+				ListOfLists: [][]int32{
+					int32range(1, 10),
+					int32range(2, 20),
+					int32range(3, 30),
+					int32range(4, 40),
+					int32range(5, 50),
+				},
+				ListOfSets: []map[int32]struct{}{
+					int32set(int32range(6, 60)...),
+					int32set(int32range(7, 70)...),
+					int32set(int32range(8, 80)...),
+					int32set(int32range(9, 90)...),
+					int32set(int32range(10, 100)...),
+				},
+				ListOfMaps: []map[int32]int32{
+					int32multiply(42, int32range(5, 10)...),
+					int32multiply(43, int32range(6, 20)...),
+					int32multiply(44, int32range(7, 30)...),
+				},
+				SetOfSets: []map[string]struct{}{
+					stringset("foo", "bar", "baz", "qux", "quux"),
+					stringset("bar", "baz", "qux", "quux"),
+					stringset("baz", "qux", "quux"),
+					stringset("qux", "quux"),
+					stringset("quux"),
+					stringset(),
+				},
+				SetOfLists: [][]string{
+					{"foo", "bar", "baz", "qux", "quux"},
+					{"bar", "baz", "qux", "quux"},
+					{"baz", "qux", "quux"},
+					{"qux", "quux"},
+					{"quux"},
+					{},
+				},
+				SetOfMaps: []map[string]string{
+					{"foo": "bar"},
+					{"bar": "baz"},
+					{"baz": "qux"},
+					{"qux": "quux"},
+					{"quux": "foo"},
+				},
+			},
+			res: &tc.ContainersOfContainers{},
+		},
 	}
 
 	directDecode := func(tt *testing.T, bb testCase, buff bytes.Buffer) {
@@ -241,7 +241,7 @@ func TestDecodingCorrectness(t *testing.T) {
 		r := bytes.NewReader(buff.Bytes())
 		r.Seek(0, 0)
 
-		reader := binary.NewReader(r)
+		reader := binary.NewBuffReader(r)
 		err := bb.res.Decode(&reader)
 		require.NoError(tt, err, "Decode")
 		require.Equal(tt, bb.give, bb.res)
@@ -419,74 +419,74 @@ func BenchmarkRoundTripNoWire(b *testing.B) {
 			},
 			res: &ts.PrimitiveOptionalStruct{},
 		},
-		//{
-		//	name: "Graph - No Wire",
-		//	give: &ts.Graph{
-		//		Edges: []*ts.Edge{
-		//			{
-		//				StartPoint: &ts.Point{X: 1.0, Y: 2.0},
-		//				EndPoint:   &ts.Point{X: 3.0, Y: 4.0},
-		//			},
-		//			{
-		//				StartPoint: &ts.Point{X: 5.0, Y: 6.0},
-		//				EndPoint:   &ts.Point{X: 7.0, Y: 8.0},
-		//			},
-		//			{
-		//				StartPoint: &ts.Point{X: 9.0, Y: 10.0},
-		//				EndPoint:   &ts.Point{X: 11.0, Y: 12.0},
-		//			},
-		//		},
-		//	},
-		//	res: &ts.Graph{},
-		//},
-		//{
-		//	name: "ContainersOfContainers",
-		//	give: &tc.ContainersOfContainers{
-		//		ListOfLists: [][]int32{
-		//			int32range(1, 10),
-		//			int32range(2, 20),
-		//			int32range(3, 30),
-		//			int32range(4, 40),
-		//			int32range(5, 50),
-		//		},
-		//		ListOfSets: []map[int32]struct{}{
-		//			int32set(int32range(6, 60)...),
-		//			int32set(int32range(7, 70)...),
-		//			int32set(int32range(8, 80)...),
-		//			int32set(int32range(9, 90)...),
-		//			int32set(int32range(10, 100)...),
-		//		},
-		//		ListOfMaps: []map[int32]int32{
-		//			int32multiply(42, int32range(5, 10)...),
-		//			int32multiply(43, int32range(6, 20)...),
-		//			int32multiply(44, int32range(7, 30)...),
-		//		},
-		//		SetOfSets: []map[string]struct{}{
-		//			stringset("foo", "bar", "baz", "qux", "quux"),
-		//			stringset("bar", "baz", "qux", "quux"),
-		//			stringset("baz", "qux", "quux"),
-		//			stringset("qux", "quux"),
-		//			stringset("quux"),
-		//			stringset(),
-		//		},
-		//		SetOfLists: [][]string{
-		//			{"foo", "bar", "baz", "qux", "quux"},
-		//			{"bar", "baz", "qux", "quux"},
-		//			{"baz", "qux", "quux"},
-		//			{"qux", "quux"},
-		//			{"quux"},
-		//			{},
-		//		},
-		//		SetOfMaps: []map[string]string{
-		//			{"foo": "bar"},
-		//			{"bar": "baz"},
-		//			{"baz": "qux"},
-		//			{"qux": "quux"},
-		//			{"quux": "foo"},
-		//		},
-		//	},
-		//	res: &tc.ContainersOfContainers{},
-		//},
+		{
+			name: "Graph - No Wire",
+			give: &ts.Graph{
+				Edges: []*ts.Edge{
+					{
+						StartPoint: &ts.Point{X: 1.0, Y: 2.0},
+						EndPoint:   &ts.Point{X: 3.0, Y: 4.0},
+					},
+					{
+						StartPoint: &ts.Point{X: 5.0, Y: 6.0},
+						EndPoint:   &ts.Point{X: 7.0, Y: 8.0},
+					},
+					{
+						StartPoint: &ts.Point{X: 9.0, Y: 10.0},
+						EndPoint:   &ts.Point{X: 11.0, Y: 12.0},
+					},
+				},
+			},
+			res: &ts.Graph{},
+		},
+		{
+			name: "ContainersOfContainers",
+			give: &tc.ContainersOfContainers{
+				ListOfLists: [][]int32{
+					int32range(1, 10),
+					int32range(2, 20),
+					int32range(3, 30),
+					int32range(4, 40),
+					int32range(5, 50),
+				},
+				ListOfSets: []map[int32]struct{}{
+					int32set(int32range(6, 60)...),
+					int32set(int32range(7, 70)...),
+					int32set(int32range(8, 80)...),
+					int32set(int32range(9, 90)...),
+					int32set(int32range(10, 100)...),
+				},
+				ListOfMaps: []map[int32]int32{
+					int32multiply(42, int32range(5, 10)...),
+					int32multiply(43, int32range(6, 20)...),
+					int32multiply(44, int32range(7, 30)...),
+				},
+				SetOfSets: []map[string]struct{}{
+					stringset("foo", "bar", "baz", "qux", "quux"),
+					stringset("bar", "baz", "qux", "quux"),
+					stringset("baz", "qux", "quux"),
+					stringset("qux", "quux"),
+					stringset("quux"),
+					stringset(),
+				},
+				SetOfLists: [][]string{
+					{"foo", "bar", "baz", "qux", "quux"},
+					{"bar", "baz", "qux", "quux"},
+					{"baz", "qux", "quux"},
+					{"qux", "quux"},
+					{"quux"},
+					{},
+				},
+				SetOfMaps: []map[string]string{
+					{"foo": "bar"},
+					{"bar": "baz"},
+					{"baz": "qux"},
+					{"qux": "quux"},
+					{"quux": "foo"},
+				},
+			},
+			res: &tc.ContainersOfContainers{},
+		},
 	}
 
 	benchmarkEncode := func(b *testing.B, bb benchCase) {
@@ -514,7 +514,7 @@ func BenchmarkRoundTripNoWire(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			r.Seek(0, 0)
 
-			reader := binary.NewReader(r)
+			reader := binary.NewBuffReader(r)
 			err := bb.res.Decode(&reader)
 			require.NoError(b, err, "Decode")
 			require.Equal(b, bb.give, bb.res)

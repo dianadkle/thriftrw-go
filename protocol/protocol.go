@@ -68,18 +68,24 @@ type Writer interface {
 }
 
 type Reader interface {
-	ReadBool(int64) (bool, int64, error)
-	ReadInt8(int64) (int8, int64, error)
-	ReadInt16(int64) (int16, int64, error)
-	ReadInt32(int64) (int32, int64, error)
-	ReadInt64(int64) (int64, int64, error)
-	ReadString(int64) (string, int64, error)
-	ReadDouble(int64) (float64, int64, error)
-	ReadBinary(int64) ([]byte, int64, error)
-	ReadStructBegin(int64) (int64, error)
+	ReadBool() (bool, error)
+	ReadInt8() (int8,  error)
+	ReadInt16() (int16,  error)
+	ReadInt32() (int32,  error)
+	ReadInt64() (int64,  error)
+	ReadString() (string,  error)
+	ReadDouble() (float64,  error)
+	ReadBinary() ([]byte,  error)
+	ReadStructBegin() ( error)
 	ReadStructEnd() error
-	ReadFieldBegin(off int64) (wire.Type, int16, int64, error)
+	ReadFieldBegin() (wire.Type, int16, error)
 	ReadFieldEnd() error
+	ReadListBegin() (wire.Type, int32, error)
+	ReadListEnd() error
+	ReadSetBegin() (wire.Type, int32, error)
+	ReadSetEnd() error
+	ReadMapBegin() (wire.Type, wire.Type, int32, error)
+	ReadMapEnd() error
 }
 
 type StreamingProtocol interface {

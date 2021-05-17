@@ -1262,9 +1262,40 @@ func (v *Edge) Encode(pw protocol.Writer) error {
 }
 
 func (v *Edge) Decode(pr protocol.Reader) error {
-	off, _ := pr.ReadStructBegin(0)
+	//off, _ := pr.ReadStructBegin(0)
+	//
+	//ttype, id, off, err := pr.ReadFieldBegin(off)
+	//if err != nil {
+	//	return nil
+	//}
+	//
+	//for ttype != 0 {
+	//	switch id {
+	//	case 1:
+	//		point := &Point{}
+	//		err := point.Decode(pr)
+	//		if err != nil {
+	//			return err
+	//		}
+	//		v.StartPoint = point
+	//	case 2:
+	//		point := &Point{}
+	//		err := point.Decode(pr)
+	//		if err != nil {
+	//			return err
+	//		}
+	//		v.EndPoint = point
+	//	}
+	//	pr.ReadFieldEnd()
+	//	ttype, id, off, err = pr.ReadFieldBegin(off)
+	//}
+	//
+	//pr.ReadStructEnd()
+	//return nil
 
-	ttype, id, off, err := pr.ReadFieldBegin(off)
+	err := pr.ReadStructBegin()
+
+	ttype, id, err := pr.ReadFieldBegin()
 	if err != nil {
 		return nil
 	}
@@ -1287,7 +1318,7 @@ func (v *Edge) Decode(pr protocol.Reader) error {
 			v.EndPoint = point
 		}
 		pr.ReadFieldEnd()
-		ttype, id, off, err = pr.ReadFieldBegin(off)
+		ttype, id, err = pr.ReadFieldBegin()
 	}
 
 	pr.ReadStructEnd()
@@ -2160,9 +2191,38 @@ func (v *Graph) Encode(pw protocol.Writer) error {
 }
 
 func (v *Graph) Decode(pr protocol.Reader) error {
-	off, _ := pr.ReadStructBegin(0)
+	//off, _ := pr.ReadStructBegin(0)
+	//
+	//ttype, id, off, err := pr.ReadFieldBegin(off)
+	//if err != nil {
+	//	return nil
+	//}
+	//
+	//for ttype != 0 {
+	//	switch id {
+	//	case 1:
+	//		t, len, o, err := pr.ReadListBegin(off)
+	//		if err != nil {
+	//			return err
+	//		}
+	//		edges := make([]*Edge, len)
+	//		for i := range len {
+	//			e := &Edge{}
+	//			err = e.Decode(pr)
+	//
+	//		}
+	//		v.StartPoint = point
+	//	}
+	//	pr.ReadFieldEnd()
+	//	ttype, id, off, err = pr.ReadFieldBegin(off)
+	//}
+	//
+	//pr.ReadStructEnd()
+	//return nil
 
-	ttype, id, off, err := pr.ReadFieldBegin(off)
+	err := pr.ReadStructBegin()
+
+	ttype, id, err := pr.ReadFieldBegin()
 	if err != nil {
 		return nil
 	}
@@ -2170,20 +2230,24 @@ func (v *Graph) Decode(pr protocol.Reader) error {
 	for ttype != 0 {
 		switch id {
 		case 1:
-			t, len, o, err := pr.ReadListBegin(off)
+			t, l, err := pr.ReadListBegin()
 			if err != nil {
 				return err
 			}
-			edges := make([]*Edge, len)
-			for i := range len {
+
+			edges := make([]*Edge, l)
+			i := int32(0)
+			for i < l {
 				e := &Edge{}
 				err = e.Decode(pr)
-
+				edges[i] = e
+				i++
 			}
-			v.StartPoint = point
+			ttype = t
+			v.Edges = edges
 		}
 		pr.ReadFieldEnd()
-		ttype, id, off, err = pr.ReadFieldBegin(off)
+		ttype, id, err = pr.ReadFieldBegin()
 	}
 
 	pr.ReadStructEnd()
@@ -3566,32 +3630,61 @@ func (v *Point) Encode(pw protocol.Writer) error {
 }
 
 func (v *Point) Decode(pr protocol.Reader) error {
-	off, _ := pr.ReadStructBegin(0)
+	//off, _ := pr.ReadStructBegin(0)
+	//
+	//ttype, id, off, err := pr.ReadFieldBegin(off)
+	//if err != nil {
+	//	return nil
+	//}
+	//
+	//for ttype != 0 {
+	//	switch id {
+	//	case 1:
+	//		b, o, err := pr.ReadDouble(off)
+	//		if err != nil {
+	//			return err
+	//		}
+	//		off = o
+	//		v.X = ptr.Float64(b)
+	//	case 2:
+	//		b, o, err := pr.ReadDouble(off)
+	//		if err != nil {
+	//			return err
+	//		}
+	//		off = o
+	//		v.Y = ptr.Float64(b)
+	//	}
+	//	pr.ReadFieldEnd()
+	//	ttype, id, off, err = pr.ReadFieldBegin(off)
+	//}
+	//
+	//pr.ReadStructEnd()
 
-	ttype, id, off, err := pr.ReadFieldBegin(off)
+	err := pr.ReadStructBegin()
+
+	ttype, id, err := pr.ReadFieldBegin()
 	if err != nil {
 		return nil
 	}
 
+
 	for ttype != 0 {
 		switch id {
 		case 1:
-			b, o, err := pr.ReadDouble(off)
+			b, err := pr.ReadDouble()
 			if err != nil {
 				return err
 			}
-			off = o
-			v.X = ptr.Float64(b)
+			v.X = b
 		case 2:
-			b, o, err := pr.ReadDouble(off)
+			b, err := pr.ReadDouble()
 			if err != nil {
 				return err
 			}
-			off = o
-			v.Y = ptr.Float64(b)
+			v.Y = b
 		}
 		pr.ReadFieldEnd()
-		ttype, id, off, err = pr.ReadFieldBegin(off)
+		ttype, id, err = pr.ReadFieldBegin()
 	}
 
 	pr.ReadStructEnd()
@@ -3893,11 +3986,9 @@ func (v *PrimitiveOptionalStruct) Encode(pw protocol.Writer) error {
 //BinaryField []byte   `json:"binaryField,omitempty"`
 
 func (v *PrimitiveOptionalStruct) Decode(pr protocol.Reader) error {
-	off, _ := pr.ReadStructBegin(0)
+	err := pr.ReadStructBegin()
 
-	var err error
-
-	ttype, id, off, err := pr.ReadFieldBegin(off)
+	ttype, id, err := pr.ReadFieldBegin()
 	if err != nil {
 		return nil
 	}
@@ -3905,64 +3996,56 @@ func (v *PrimitiveOptionalStruct) Decode(pr protocol.Reader) error {
 	for ttype != 0 {
 		switch id {
 		case 1:
-			b, o, err := pr.ReadBool(off)
+			b, err := pr.ReadBool()
 			if err != nil {
 				return err
 			}
-			off = o
 			v.BoolField = ptr.Bool(b)
 		case 2:
-			b, o, err := pr.ReadInt8(off)
+			b, err := pr.ReadInt8()
 			if err != nil {
 				return err
 			}
-			off = o
 			v.ByteField = ptr.Int8(b)
 		case 3:
-			i, o, err := pr.ReadInt16(off)
+			i, err := pr.ReadInt16()
 			if err != nil {
 				return err
 			}
-			off = o
 			v.Int16Field = ptr.Int16(i)
 		case 4:
-			i, o, err := pr.ReadInt32(off)
+			i,err := pr.ReadInt32()
 			if err != nil {
 				return err
 			}
-			off = o
 			v.Int32Field = ptr.Int32(i)
 		case 5:
-			i, o, err := pr.ReadInt64(off)
+			i, err := pr.ReadInt64()
 			if err != nil {
 				return err
 			}
-			off = o
 			v.Int64Field = ptr.Int64(i)
 		case 6:
-			d, o, err := pr.ReadDouble(off)
+			d, err := pr.ReadDouble()
 			if err != nil {
 				return err
 			}
-			off = o
 			v.DoubleField = ptr.Float64(d)
 		case 7:
-			s, o, err := pr.ReadString(off)
+			s, err := pr.ReadString()
 			if err != nil {
 				return err
 			}
-			off = o
 			v.StringField = ptr.String(s)
 		case 8:
-			b, o, err := pr.ReadBinary(off)
+			b, err := pr.ReadBinary()
 			if err != nil {
 				return err
 			}
-			off = o
 			v.BinaryField = b
 		}
 		pr.ReadFieldEnd()
-		ttype, id, off, err = pr.ReadFieldBegin(off)
+		ttype, id, err = pr.ReadFieldBegin()
 	}
 
 	pr.ReadStructEnd()
